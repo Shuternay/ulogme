@@ -69,6 +69,6 @@ class CustomHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 
 httpd = SocketServer.ThreadingTCPServer((IP, PORT), CustomHandler)
 
-print 'Serving ulogme, see it on http://localhost:' + `PORT`
+print ('Serving ulogme, see it on http://localhost:' + `PORT`)
 httpd.serve_forever()
 
