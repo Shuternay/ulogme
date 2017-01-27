@@ -16,14 +16,14 @@ def loadEvents(fname):
   events = []
 
   try:
-    ws = open(fname, 'r').read().decode('utf-8').splitlines()
+    ws = open(fname, 'rb').read().decode('utf-8').splitlines()
     events = []
     for w in ws:
       ix = w.find(' ') # find first space, that's where stamp ends
       stamp = int(w[:ix])
       str = w[ix+1:]
       events.append({'t':stamp, 's':str})
-  except Exception as e:
+  except FileNotFoundError as e:
     print ('%s probably does not exist, setting empty events list.' % (fname, ))
     print ('error was:')
     print (e)
@@ -108,7 +108,7 @@ def updateEvents():
       print ('wrote ' + fwrite)
 
   fwrite = os.path.join(RENDER_ROOT, 'export_list.json')
-  open(fwrite, 'w').write(json.dumps(out_list).encode('utf8'))
+  open(fwrite, 'wb').write(json.dumps(out_list).encode('utf8'))
   print ('wrote ' + fwrite)
 
 # invoked as script
