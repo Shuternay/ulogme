@@ -1,0 +1,181 @@
+
+
+#spinnerdiv {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 50px;
+  height: 50px;
+}
+
+/* index.html */
+#wrap {
+  margin-left: 10px;
+  margin-right: 10px;
+}
+
+pre {
+  background-color: #F9F9F9;
+  border: 1px solid #CCC;
+  padding: 10px;
+  border-radius: 3px;
+}
+#blogenter textarea {
+  background-color: #F9F9F9;
+  border: 1px solid #CCC;
+  padding: 10px;
+  border-radius: 3px;
+  height: 200px;
+  width: 100%;
+  margin: 0;
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+}
+#blogenter {
+  margin-top: 10px;
+}
+#blogentersubmit {
+  width: 200px;
+  height: 40px;
+}
+
+#daily-keystats {
+  margin-top: 20px;
+}
+
+#keygraph {
+  margin-top: 20px;
+  border-top: 1px solid #AAA;
+}
+#keygraph p {
+    text-align: center;
+    color: #55F;
+}
+#keygraph .line {
+  fill: none;
+  stroke: #55F;
+  stroke-width: 1px;
+}
+
+.tt {
+  font-size: 20px;
+  margin-top: 30px;
+}
+.td {
+  font-size: 15px;
+}
+
+#piechart {
+  text-align: center;
+  margin-top: 40px;
+  padding-top: 20px;
+  margin-bottom: 20px;
+  border-top: 1px solid #AAA;
+}
+#piechart text {
+  font-family: Impact, Charcoal, sans-serif;
+  font-size: 20px;
+}
+
+#notesinfo {
+  font-size: 16px;
+  font-family: 'arial';
+  background-color: #FFA;
+  border: 1px solid #EE9;
+  padding: 10px;
+  border-radius: 10px;
+  display: none;
+}
+#notesinfohide {
+  float: right;
+  font-size: 40px;
+  cursor: pointer;
+  /* make unselectable, since they are text technically */
+  -webkit-user-select: none;  /* Chrome all / Safari all */
+  -moz-user-select: none;     /* Firefox all */
+  -ms-user-select: none;      /* IE 10+ */
+  -o-user-select: none; /* not yet supported well */
+  user-select: none;
+  color: #AA5;
+}
+#notesadd {
+  font-weight: bold;
+  font-size: 20px;
+  border: 1px solid #333;
+  cursor: pointer;
+  text-align: center;
+  padding: 5px;
+  width: 100px;
+  background-color: #7E7;
+  border-radius: 5px;
+}
+input[type="text"] {
+    font-size: 20px;
+    margin-bottom: 5px;
+    display: block;
+    padding: 5px;
+    border: solid 1px #AA5;
+    width: 500px;
+    color: #333;
+}
+
+
+/* overview.html */
+#wrap-overview {
+  text-align: center;
+  margin-left: 10px;
+  margin-right: 10px;
+}
+
+#content {
+  margin: 10px;
+}
+
+#keystats {
+  width: 90%;
+  margin-left: auto;
+  margin-right: auto;
+}
+#keystats text {
+    fill: #333;
+}
+#keystats .line {
+  fill: none;
+  stroke: #55F;
+  stroke-width: 2px;
+}
+
+
+
+.fdiv {
+  display: inline-block;
+  margin-right: 30px;
+}
+
+.divkeys {
+  height: 16px;
+}
+.legenddiv p {
+  display: inline-block;
+  margin-right: 10px;
+  cursor: pointer;
+  padding: 5px;
+}
+.skipdrawyes {
+  text-decoration: line-through;
+  color: #999 !important;
+}
+.skipdrawno {
+  text-decoration: underline;
+}
+#keysummary {
+  display: inline-block;
+}
+#timesummary {
+  display: inline-block;
+}
+#summaries {
+  margin-top: 30px;
+  margin-bottom: 40px;
+}

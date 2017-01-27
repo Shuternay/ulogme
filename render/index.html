@@ -5,10 +5,26 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
     <title>ulogme</title>
 
-    <link href='font_lato.css' rel='stylesheet' type='text/css'>
-    <link href='index_style.css' rel='stylesheet' type='text/css'>
+    <script
+      src="https://code.jquery.com/jquery-1.12.4.min.js"
+      integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ="
+      crossorigin="anonymous"></script>
 
-    <script src="jquery-1.8.3.min.js"></script>
+    <!-- Latest compiled and minified CSS -->
+    <link
+      rel="stylesheet"
+      href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
+      integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u"
+      crossorigin="anonymous">
+
+    <!-- Latest compiled and minified JavaScript -->
+    <script
+      src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"
+      integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa"
+      crossorigin="anonymous"></script>
+
+    <link href='style.css' rel='stylesheet' type='text/css'>
+
     <script src="spin.min.js"></script>
     <script src="render_utils.js"></script>
     <script src="render_settings.js"></script>
@@ -16,7 +32,7 @@
     <script src="d3utils.js" charset="utf-8"></script>
     <script src="underscore.min.js" charset="utf-8"></script>
     <script src="ulogme_common.js" charset="utf-8"></script>
-    
+
     <script type="application/javascript">
 
     // GLOBALS
@@ -33,20 +49,20 @@
       // count up the total amount of time spent in all windows
       var dtall = 0;
       var counts = {};
-      _.each(es, function(e){ 
-        counts[e.m] = (counts[e.m] || 0) + e.dt; 
-        dtall += e.dt; 
+      _.each(es, function(e){
+        counts[e.m] = (counts[e.m] || 0) + e.dt;
+        dtall += e.dt;
       });
       var stats = _.map(etypes, function(m) {
-        return {val: counts[m], 
-                name: m + " (" + (100*counts[m]/dtall).toFixed(1) + "%)", 
+        return {val: counts[m],
+                name: m + " (" + (100*counts[m]/dtall).toFixed(1) + "%)",
                 col: color_hash[m]
                };
       });
 
       // create a pie chart with d3
       var chart_data = {};
-      chart_data.width = $(window).width();
+      chart_data.width = $(window).width() - 40;  // FIXME (causes horizontal scrolling)
       chart_data.height = 500;
       chart_data.title = "Total Time: " + strTimeDelta(dtall);
       chart_data.data = stats;
@@ -97,10 +113,10 @@
 
     // number of keys pressed in every window type visualization
     function visualizeKeyStats(key_stats, etypes) {
-      $("#keystats").empty();
+      $("#daily-keystats").empty();
 
       // format input for d3
-      var stats = _.map(etypes, function(m) { 
+      var stats = _.map(etypes, function(m) {
         return {
           name: m,
           val: key_stats.hasOwnProperty(m) ? key_stats[m].f : 0,
@@ -108,8 +124,8 @@
         };
       });
       stats = _.filter(stats, function(d) { return d.val > 60 }); // cutoff at 1 minute
-      _.each(stats, function(d) { 
-        var fn = (d.val / (key_stats[d.name].n * 9.0)).toFixed(2); 
+      _.each(stats, function(d) {
+        var fn = (d.val / (key_stats[d.name].n * 9.0)).toFixed(2);
         d.text = d.val + ' (' + fn + '/s) ' + d.name;
       });
       stats = _.sortBy(stats, 'val').reverse();
@@ -122,7 +138,7 @@
       chart_data.textmargin = 10;
       chart_data.title = "Total number of key strokes";
       chart_data.data = stats;
-      d3utils.drawHorizontalBarChart(d3.select('#keystats'), chart_data);
+      d3utils.drawHorizontalBarChart(d3.select('#daily-keystats'), chart_data);
     }
 
     // simple plot of key frequencies over time
@@ -146,7 +162,7 @@
         .attr("class", "line")
         .attr("d", line);
 
-      div.append("p").attr("class", "al").text("keystroke frequency");
+      div.append("p").text("keystroke frequency");
     }
 
     function visualizeNotes(es) {
@@ -236,9 +252,9 @@
       var ttot = 0;
       var ttoti = [];
       var filter_colors = [];
-      for(var q=0;q<filter.length;q++) { 
+      for(var q=0;q<filter.length;q++) {
         filter_colors[q] = color_hash[filter[q]];
-        ttoti.push(0); 
+        ttoti.push(0);
       }
       for(var i=0,N=es.length;i<N;i++) {
         var e = es[i];
@@ -284,12 +300,12 @@
         .on("mouseover", function(d){return tooltip.style("visibility", "visible").text(d.s);})
         .on("mousemove", function(){return tooltip.style("top", (event.pageY-10)+"px").style("left",(event.pageX+10)+"px");})
         .on("mouseout", function(){return tooltip.style("visibility", "hidden");})
-        .on("click", function(d){ 
-          $("#notesinfo").show(); 
+        .on("click", function(d){
+          $("#notesinfo").show();
           $("#notesmsg").html("clicked event <b>" + d.s + "</b><br> Add note at time of this event:");
           $("#notetext").focus()
           clicktime = d.x+t00;
-          return 0; 
+          return 0;
           });
 
       g.append("rect")
@@ -341,7 +357,7 @@
     function writeHeader() {
       var date0 = new Date(t00*1000);
       var date1 = new Date(ft*1000);
-      $("#header").html('<h2>' + ppDate(date0) + ' - ' + ppDate(date1) + '</h2>');
+      $("#header").html(ppDate(date0) + ' &mdash; ' + ppDate(date1));
     }
 
     function startSpinner() {
@@ -370,7 +386,7 @@
 
         // map all window titles through the (customizable) mapwin function
         _.each(events, function(e) { e.m = mapwin(e.s); });
-        
+
         // compute various statistics
         statEvents(events);
 
@@ -414,7 +430,7 @@
     var cur_event_id = -1;
     var clicktime = 0;
     function start() {
-      
+
       // create tooltip div
       tooltip = d3.select("body")
       .append("div")
@@ -551,15 +567,38 @@
     </script>
   </head>
   <body onload="start()">
-    <div id="spinnerdiv"></div>
-    <div id="reloadbutton">&#10226</div>
-    <div id="overviewlink"><a href="overview.html">Overview</a></div>
-    <h1>ulogme</h1>
-    <div>
-      <div id="leftarrow" class="arrow">&lt</div>
-      <div id="rightarrow" class="arrow">&gt</div>
-      <div id="header"></div>
-    </div>
+    <nav class="navbar navbar-default">
+      <div class="container-fluid">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="#">ulogme</a>
+        </div>
+
+        <!-- Collect the nav links, forms, and other content for toggling -->
+        <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+          <ul class="nav navbar-nav navbar-left">
+            <li><a href="overview.html">Overview</a></li>
+            <li class="active"><a href="index.html">Single-day view</a></li>
+          </ul>
+
+          <ul class="nav navbar-nav navbar-right">
+            <li><button type="button" id="leftarrow" class="btn btn-default navbar-btn">&lt;</button></li>
+            <li><p id="header" class="navbar-text"></p></li>
+            <li><div class="btn-group">
+              <button type="button" id="rightarrow" class="btn btn-default navbar-btn">&gt;</button>
+              <button type="button" id="reloadbutton" class="btn btn-default navbar-btn">&#10226;</button>
+            </div></li>
+          </ul>
+        </div><!-- /.navbar-collapse -->
+      </div><!-- /.container-fluid -->
+    </nav>
+
     <div id="wrap">
       <div id="blogwrap">
         <pre id="blogpre"></pre>
@@ -568,7 +607,7 @@
           <button id="blogentersubmit">Submit</button>
         </div>
       </div>
-      <div id="keystats"></div>
+      <div id="daily-keystats"></div>
       <div id="keygraph"></div>
       <div id="notesinfo">
         <div id="notesinfohide">X</div>
