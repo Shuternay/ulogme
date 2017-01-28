@@ -5,9 +5,9 @@ import os
 import os.path
 import sys
 import glob
+import sqlite3
 
-
-def loadEvents(fname):
+def loadEvents(fname, events_type):
   """
   Reads a file that consists of first column of unix timestamps
   followed by arbitrary string, one per line. Outputs as dictionary.
@@ -15,14 +15,28 @@ def loadEvents(fname):
   """
   events = []
 
+
+
   try:
     ws = open(fname, 'rb').read().decode('utf-8').splitlines()
     events = []
+    conn = sqlite3.connect('logs/logs.db')
+    c = conn.cursor()
+
     for w in ws:
       ix = w.find(' ') # find first space, that's where stamp ends
       stamp = int(w[:ix])
-      str = w[ix+1:]
-      events.append({'t':stamp, 's':str})
+      entry = w[ix+1:]
+      try:
+        c.execute("INSERT INTO {0} VALUES (?, ?, ?);".format(events_type),
+          (int(stamp), 'UTC+03:00', entry))
+      except sqlite3.IntegrityError as e:
+        pass
+
+      events.append({'t':stamp, 's':entry})
+
+    conn.commit()
+    conn.close()
   except FileNotFoundError as e:
     print ('%s probably does not exist, setting empty events list.' % (fname, ))
     print ('error was:')
@@ -94,9 +108,9 @@ def updateEvents():
 
     if dowrite:
       # okay lets do work
-      e1 = loadEvents(e1f)
-      e2 = loadEvents(e2f)
-      e3 = loadEvents(e3f)
+      e1 = loadEvents(e1f, 'window')
+      e2 = loadEvents(e2f, 'keyfreq')
+      e3 = loadEvents(e3f, 'notes')
       for k in e2: k['s'] = int(k['s']) # int convert
 
       e4 = ''

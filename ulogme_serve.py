@@ -3,6 +3,9 @@ import http.server
 import sys
 import cgi
 import os
+import json
+import sqlite3
+from urllib.parse import urlparse, parse_qs
 
 from export_events import updateEvents
 from rewind7am import rewindTime
@@ -22,7 +25,41 @@ os.chdir('render')
 class CustomHandler(http.server.SimpleHTTPRequestHandler):
   def do_GET(self):
     # default behavior
-    http.server.SimpleHTTPRequestHandler.do_GET(self)
+    if self.path.startswith('/events?'):
+      query_components = parse_qs(urlparse(self.path).query)
+
+      conn = sqlite3.connect('../logs/logs.db')
+      c = conn.cursor()
+
+      notes = []
+      for row in c.execute('SELECT * FROM notes WHERE date >= ? AND date < ?;',
+          (int(query_components['begin_time'][0]) // 1000, int(query_components['end_time'][0]) // 1000)):
+        notes.append({'t': row[0], 'timezone': row[1], 's': row[2]})
+      window = []
+      for row in c.execute('SELECT * FROM window WHERE date >= ? AND date < ?;',
+          (int(query_components['begin_time'][0]) // 1000, int(query_components['end_time'][0]) // 1000)):
+        window.append({'t': row[0], 'timezone': row[1], 's': row[2]})
+      keyfreq = []
+      for row in c.execute('SELECT * FROM keyfreq WHERE date >= ? AND date < ?;',
+          (int(query_components['begin_time'][0]) // 1000, int(query_components['end_time'][0]) // 1000)):
+        keyfreq.append({'t': row[0], 'timezone': row[1], 's': row[2]})
+
+      conn.close()
+
+      response = {
+        'blog': '',
+        'window_events': window,
+        'keyfreq_events': keyfreq,
+        'notes_events': notes
+      }
+
+      self.send_response(200)
+      self.send_header('Content-type','text/json')
+      self.end_headers()
+      self.wfile.write(json.dumps(response).encode('utf8'))
+
+    else:
+      http.server.SimpleHTTPRequestHandler.do_GET(self)
 
   def do_POST(self):
     form = cgi.FieldStorage(

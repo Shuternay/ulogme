@@ -370,13 +370,15 @@
       $("#spinnerdiv").empty();
     }
 
-    function fetchAndLoadEvents(daylog) {
+    function fetchAndLoadEvents(beginTime, endTime) {
       loaded = false;
       // we do this random thing to defeat caching. Very annoying
-      var json_path = daylog.fname + "?sigh=" + Math.floor(10000*Math.random());
+      var json_path = 'events?begin_time=' + beginTime.getTime() +
+          '&end_time=' + endTime.getTime() +
+          "&sigh=" + Math.floor(10000*Math.random());
 
       // fill in blog area with blog for this day
-      $.getJSON(json_path, function(data){
+      $.getJSON(json_path, function(data) {
         loaded = true;
 
         // save these as globals for later access
@@ -398,8 +400,8 @@
           t00 = _.min(_.pluck(events, 't'));
           ft = _.max(_.map(events, function(e) { return e.t + e.dt; }))
         } else {
-          t00 = daylog.t0;
-          ft = daylog.t1;
+          t00 = beginTime.getTime() / 1000;
+          ft = endTime.getTime() / 1000;
         }
 
         // render blog entry
@@ -420,6 +422,18 @@
       });
     }
 
+    function rewind7am(date) {
+      newDate = new Date(date);
+      if (date.getHours() < 7) {
+        newDate.setDate(newDate.getDate() - 1);
+      }
+      newDate.setHours(7);
+      newDate.setMinutes(0);
+      newDate.setSeconds(0);
+      newDate.setMilliseconds(0);
+      return newDate;
+    }
+
     var events;
     var key_events;
     var notes_events;
@@ -429,6 +443,11 @@
     var loaded = false;
     var cur_event_id = -1;
     var clicktime = 0;
+
+    var beginTime = rewind7am(new Date());
+    var endTime = new Date(beginTime);
+    endTime.setDate(endTime.getDate() + 1);
+
     function start() {
 
       // create tooltip div
@@ -439,15 +458,16 @@
       .style("visibility", "hidden")
       .text("");
 
-      // we do this random thing to defeat caching. Very annoying
-      $.getJSON("export_list.json?sigh=" + Math.floor(10000*Math.random()), function(data){
-        event_list = data; // assign to global variable
+      // // we do this random thing to defeat caching. Very annoying
+      // $.getJSON("export_list.json?sigh=" + Math.floor(10000*Math.random()), function(data){
+      //   event_list = data; // assign to global variable
+      //
+      //   cur_event_id = event_list.length - 1;
+      //   if('gotoday' in QueryString) { cur_event_id = parseInt(QueryString.gotoday); }
+      //
+      // });
 
-        cur_event_id = event_list.length - 1;
-        if('gotoday' in QueryString) { cur_event_id = parseInt(QueryString.gotoday); }
-
-        fetchAndLoadEvents(event_list[cur_event_id]); // display latest
-      });
+      fetchAndLoadEvents(beginTime, endTime);  // display latest
 
       // setup notes hide key
       $("#notesinfohide").click(function(){ $("#notesinfo").hide(); });
@@ -463,7 +483,7 @@
             stopSpinner();
             if(data === 'OK') {
               // everything went well, refresh current view
-              fetchAndLoadEvents(event_list[cur_event_id]);
+              fetchAndLoadEvents(beginTime, endTime);
             }
         });
       });
@@ -481,7 +501,7 @@
               // everything went well, refresh current view
               $("#notetext").val('') // erase
               $("#notesinfo").hide(); // take away
-              fetchAndLoadEvents(event_list[cur_event_id]);
+              fetchAndLoadEvents(beginTime, endTime);
             }
         });
       });
@@ -495,26 +515,20 @@
 
       // setup arrow events
       $("#leftarrow").click(function() {
-        cur_event_id--;
-        if(cur_event_id < 0) {
-          cur_event_id = 0;
-        } else {
-          fetchAndLoadEvents(event_list[cur_event_id]); // display latest
-          $("#notesinfo").hide();
-          $("#blogenter").hide();
-          $("#blogpre").show();
-        }
+        beginTime.setDate(beginTime.getDate() - 1);
+        endTime.setDate(endTime.getDate() - 1);
+        fetchAndLoadEvents(beginTime, endTime);
+        $("#notesinfo").hide();
+        $("#blogenter").hide();
+        $("#blogpre").show();
       });
       $("#rightarrow").click(function() {
-        cur_event_id++;
-        if(cur_event_id >= event_list.length) {
-          cur_event_id = event_list.length - 1;
-        } else {
-          fetchAndLoadEvents(event_list[cur_event_id]); // display latest
-          $("#notesinfo").hide();
-          $("#blogenter").hide();
-          $("#blogpre").show();
-        }
+        beginTime.setDate(beginTime.getDate() + 1);
+        endTime.setDate(endTime.getDate() + 1);
+        fetchAndLoadEvents(beginTime, endTime);
+        $("#notesinfo").hide();
+        $("#blogenter").hide();
+        $("#blogpre").show();
       });
 
       // setup blog text click event
@@ -600,13 +614,14 @@
     </nav>
 
     <div id="wrap">
-      <div id="blogwrap">
+      <!-- TODO: fix blog -->
+      <!-- <div id="blogwrap">
         <pre id="blogpre"></pre>
         <div id="blogenter">
           <textarea id="blogentertxt"></textarea>
           <button id="blogentersubmit">Submit</button>
         </div>
-      </div>
+      </div> -->
       <div id="daily-keystats"></div>
       <div id="keygraph"></div>
       <div id="notesinfo">
