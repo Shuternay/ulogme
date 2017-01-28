@@ -334,6 +334,9 @@
 
     // count up how much every event took
     function statEvents(es) {
+      ecounts = {};
+      etypes = [];
+
       if(es.length === 0) return;
 
       var t0 = es[0].t;
@@ -346,7 +349,7 @@
         if(ecounts.hasOwnProperty(tmap)) {
           ecounts[tmap] += dt;
         } else {
-          ecounts[tmap] = 0;
+          ecounts[tmap] = dt;
           etypes.push(tmap); // catalogue these in a list
         }
         ixprev = i;
