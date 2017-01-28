@@ -84,10 +84,10 @@
       var c = "rgb(200,0,0)"; // color
 
       var div = d3.select("#hackingvis").append("div");
-      div.append("p").attr("class", "tt").attr("style", "color:"+c).text("Hacking Streak");
+      div.append("p").attr("class", "group-title").attr("style", "color:"+c).text("Hacking Streak");
       var txt = strTimeDelta(hacking_stats.total_hacking_time);
       txt += " (total keys = " + hacking_stats.total_hacking_keys + ")";
-      div.append("p").attr("class", "td").text(txt);
+      div.append("p").attr("class", "group-time").text(txt);
 
       var W = $(window).width() - 40;
       var svg = div.append("svg")
@@ -133,7 +133,7 @@
       // visualize as horizontal bars with d3
       var chart_data = {};
       chart_data.width = 700;
-      chart_data.barheight = 30;
+      chart_data.barheight = 25;
       chart_data.textpad = 300;
       chart_data.textmargin = 10;
       chart_data.title = "Total number of key strokes";
@@ -187,7 +187,7 @@
 
       console.log('drawing ' + dts.length + ' notes.');
       var div = d3.select("#notesvis").append("div");
-      div.append("p").attr("class", "tt").attr("style", "color: #964B00").text("Notes");
+      div.append("p").attr("class", "group-title").attr("style", "color: #964B00").text("Notes");
       var W = $(window).width() - 40;
       var svg = div.append("svg")
       .attr("width", W)
@@ -282,15 +282,15 @@
 
         var filter_div = filters_div.append("div").attr("class", "fdiv");
         var c = filter_colors[q];
-        filter_div.append("p").attr("class", "tt").attr("style", "color:"+c).text(filter[q]);
+        filter_div.append("p").attr("class", "group-title").attr("style", "color:"+c).text(filter[q]);
         var txt = strTimeDelta(ttoti[q]);
-        filter_div.append("p").attr("class", "td").text(txt);
+        filter_div.append("p").attr("class", "group-time").text(txt);
       }
 
       var W = $(window).width() - 40;
       var svg = div.append("svg")
       .attr("width", W)
-      .attr("height", 70);
+      .attr("height", 50);
 
       var sx = (ft-t00) / W;
       var g = svg.selectAll(".e")
@@ -312,7 +312,7 @@
         .attr("x", function(d) { return d.x/sx; } )
         .attr("width", function(d) { return d.w/sx; } )
         .attr("y", 0)
-        .attr("height", 50)
+        .attr("height", 30)
         .attr("fill", function(d) { return filter_colors[d.fix]; });
 
       // produce little axis numbers along the timeline
@@ -323,7 +323,7 @@
       var t = d0.getTime() / 1000; // cropped hour
       while(t < ft) {
         svg.append("text")
-          .attr("transform", "translate(" + [(t-t00)/sx, 70] + ")")
+          .attr("transform", "translate(" + [(t-t00)/sx, 50] + ")")
           .attr("font-family", "'Lato', sans-serif")
           .attr("font-size", 14)
           .attr("fill", "#CCC")

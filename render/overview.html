@@ -64,22 +64,23 @@
 
       var margin = {top: 10, right: 10, bottom: 100, left: 40};
       var fullwidth = 1200;
-      var fullheight = 800;
+      var fullheight = 470;
       var width = fullwidth - margin.left - margin.right;
       var height = fullheight - margin.top - margin.bottom;
       var svg = d3div.append("svg")
         .attr("width", width + margin.left + margin.right)
         .attr("height", height + margin.top + margin.bottom)
 
-      var yscale = 0.008;
+      var yscale = 0.004;
 
       // draw y axis labels
       var yoff = 0;
       var yn = 0;
-      while(yoff < height) {
+      while(yoff < 24 * 3600 * yscale) {
 
         var yy = (height + margin.top - yoff);
         svg.append("text")
+          .attr("class", "bar-time")
           .attr("transform", "translate(1," + (yy-3) + ")")
           .text(yn + "hr");
 
@@ -418,7 +419,7 @@
       // visualize as chart
       var chart_data = {};
       chart_data.width = 600;
-      chart_data.barheight = 30;
+      chart_data.barheight = 25;
       chart_data.textpad = 300;
       chart_data.textmargin = 10;
       chart_data.title = 'total keys per window';
@@ -448,7 +449,7 @@
       // visualize as chart
       var chart_data = {};
       chart_data.width = 600;
-      chart_data.barheight = 30;
+      chart_data.barheight = 25;
       chart_data.textpad = 300;
       chart_data.textmargin = 10;
       chart_data.title = 'total time per window';
