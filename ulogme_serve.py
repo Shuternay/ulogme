@@ -32,15 +32,15 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
       c = conn.cursor()
 
       notes = []
-      for row in c.execute('SELECT * FROM notes WHERE date >= ? AND date < ?;',
+      for row in c.execute('SELECT * FROM notes WHERE date >= ? AND date < ? ORDER BY date;',
           (int(query_components['begin_time'][0]) // 1000, int(query_components['end_time'][0]) // 1000)):
         notes.append({'t': row[0], 'timezone': row[1], 's': row[2]})
       window = []
-      for row in c.execute('SELECT * FROM window WHERE date >= ? AND date < ?;',
+      for row in c.execute('SELECT * FROM window WHERE date >= ? AND date < ? ORDER BY date;',
           (int(query_components['begin_time'][0]) // 1000, int(query_components['end_time'][0]) // 1000)):
         window.append({'t': row[0], 'timezone': row[1], 's': row[2]})
       keyfreq = []
-      for row in c.execute('SELECT * FROM keyfreq WHERE date >= ? AND date < ?;',
+      for row in c.execute('SELECT * FROM keyfreq WHERE date >= ? AND date < ? ORDER BY date;',
           (int(query_components['begin_time'][0]) // 1000, int(query_components['end_time'][0]) // 1000)):
         keyfreq.append({'t': row[0], 'timezone': row[1], 's': row[2]})
 

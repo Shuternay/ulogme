@@ -52,10 +52,10 @@ do
 	T="$(date +%s)"
 
 	# if more than some time has elapsed, do a write anyway
-	#elapsed_seconds=$(expr $T - $last_write)
-	#if [ $elapsed_seconds -ge $maxtime ]; then
-	#	perform_write=true
-	#fi
+	elapsed_seconds=$(expr $T - $last_write)
+	if [ $elapsed_seconds -ge $maxtime ]; then
+		perform_write=true
+	fi
 
 	# log window switch if appropriate
 	if [ "$perform_write" = true ]; then

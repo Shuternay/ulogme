@@ -128,9 +128,14 @@ input[type="text"] {
   margin-right: 10px;
 }
 
-#content {
+#groups-bar-chart {
   margin: 10px;
 }
+#groups-bar-chart svg {
+  width: 1200px;
+  height: 470px;
+}
+
 
 #keystats {
   width: 90%;
