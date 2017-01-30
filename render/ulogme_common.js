@@ -615,8 +615,8 @@ function createPieChart(es, titleGroups) {
   var dtall = 0;
   var counts = {};
   _.each(es, function(e){
-    counts[e.group] = (counts[e.group] || 0) + e.dt;
-    dtall += e.dt;
+    counts[e.group] = (counts[e.group] || 0) + e.length;
+    dtall += e.length;
   });
   var stats = _.map(titleGroups, function(group) {
     return {val: counts[group],
@@ -828,13 +828,13 @@ function visualizeEvent(es, filter) {
     }
     var fix = filter.indexOf(e.group);
     if( fix === -1) { continue; }
-    ttot += e.dt;
-    ttoti[fix] += e.dt;
-    if(e.dt < 10) continue; // less than few second event? skip drawing. Not a concentrated activity
+    ttot += e.length;
+    ttoti[fix] += e.length;
+    if(e.length < 10) continue; // less than few second event? skip drawing. Not a concentrated activity
     var d = {};
     d.x = e.t - t00;
-    d.w = e.dt;
-    d.s = e.s + " (" + strTimeDelta(e.dt) + ")";
+    d.w = e.length;
+    d.s = e.s + " (" + strTimeDelta(e.length) + ")";
     d.fix = fix;
     dts.push(d);
   }
@@ -901,30 +901,36 @@ function visualizeEvent(es, filter) {
 }
 
 // count up how much every event took
-function statEvents(es) {
+function processWindowEvents(windowEvents) {
   ecounts = {};
   titleGroups = [];
 
-  if(es.length === 0) return;
-
-  var t0 = es[0].t;
-  var ixprev = 0;
-  for(var i=1,N=es.length;i<N;i++) {
-    var e = es[i];
-    var dt = es[i].t - es[ixprev].t; // length of time for last event
-    es[ixprev].dt = dt;
-    var tmap = es[ixprev].group; // mapped title of previous events
-    if(ecounts.hasOwnProperty(tmap)) {
-      ecounts[tmap] += dt;
-    } else {
-      ecounts[tmap] = dt;
-      titleGroups.push(tmap); // catalogue these in a list
+  windowEvents.forEach((windowEvent, index, windowEvents) => {
+    if (index + 1 == windowEvents.length) {
+      windowEvent.length = 1;
+      return;
     }
-    ixprev = i;
-  }
-  es[N-1].dt = 1; // last event we dont know how long lasted. assume 1 second?
-}
+    windowEvent.length = windowEvents[index + 1].t - windowEvent.t;
+    if(ecounts.hasOwnProperty(windowEvent.group)) {
+      ecounts[windowEvent.group] += windowEvent.length;
+    } else {
+      ecounts[windowEvent.group] = windowEvent.length;
+      titleGroups.push(windowEvent.group);
+    }
+  });
 
+  windowEvents = windowEvents.filter((windowEvent, index, windowEvents) => {
+    if (index + 1 == windowEvents.length || windowEvent.s != windowEvents[index + 1].s) {
+      return true;
+    } else {
+      windowEvents[index + 1].length += windowEvent.length;
+      windowEvents[index + 1].t = windowEvent.t;
+      return false;
+    }
+  });
+
+  return windowEvents;
+}
 
 
 
@@ -946,7 +952,7 @@ function fetchAndLoadEvents(beginTime, endTime) {
     _.each(events['window_events'], function(e) { e.group = mapwin(e.s); });
 
     // compute various statistics
-    statEvents(events['window_events']);
+    events['window_events'] = processWindowEvents(events['window_events']);
 
     // create color hash table, maps from window titles -> HSL color
     groupColor = colorHashStrings(_.uniq(_.pluck(events['window_events'], 'group')));
@@ -954,7 +960,7 @@ function fetchAndLoadEvents(beginTime, endTime) {
     // find the time extent: min and max time for this day
     if(events['window_events'].length > 0) {
       t00 = _.min(_.pluck(events['window_events'], 't'));
-      ft = _.max(_.map(events['window_events'], function(e) { return e.t + e.dt; }))
+      ft = _.max(_.map(events['window_events'], function(e) { return e.t + e.length; }))
     } else {
       t00 = beginTime.getTime() / 1000;
       ft = endTime.getTime() / 1000;
