@@ -77,6 +77,12 @@
         $("#blogpre").show();
       });
 
+      $('#list-filter').change((e) => {
+        drawEventsList(events['window_events'], e.target.value);
+      });
+
+
+
       setInterval(redraw, 1000); // in case of window resize, we can redraw
     }
 
@@ -94,7 +100,7 @@
     });
     </script>
   </head>
-  
+
   <body onload="start()">
 
     <nav class="navbar navbar-default">
@@ -132,8 +138,7 @@
 
 
     <div id="wrap">
-      <div id="keystats"></div>
-      <div id="keygraph"></div>
+      <input type="text" class="form-control" id="list-filter"></div>
       <div id="events_list"></div>
     </div>
   </body>

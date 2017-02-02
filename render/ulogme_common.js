@@ -879,11 +879,18 @@ function visualizeEvent(windowEvents, categoryGroups) {
   }
 }
 
-
-function drawEventsList(windowEvents) {
+function drawEventsList(windowEvents, filter) {
   $("#events_list").empty();
 
   var eventsToShow = windowEvents.filter(event => event.length > 10);
+  var evalInitContext = 'start_time = this.start_time; duration = this.duration;' +
+    'group = this.group; title = this.title;';
+  if (filter) {
+    eventsToShow = windowEvents.filter(event => {
+      return (function() {  return eval(evalInitContext + filter); }).call(
+        {start_time: event.t, duration: event.length, group: event.group, title: event.s});
+    });
+  }
 
   var listDiv = d3.select("#events_list").append("div");
   var table = listDiv.append("table")
@@ -893,7 +900,7 @@ function drawEventsList(windowEvents) {
       { head: 'start_time', cl: 'event_start_time col-md-1', html: event => convertTime(event.t) },
       { head: 'length', cl: 'event_length col-md-1', html: event => strTimeDelta(event.length) },
       { head: 'group', cl: 'event_group col-md-2', html: event => event.group },
-      { head: 'caption', cl: 'event_caption', html: event => event.s },
+      { head: 'title', cl: 'event_title', html: event => event.s },
   ];
 
   // create table header
