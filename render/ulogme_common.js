@@ -64,6 +64,10 @@ function rewind7am(date) {
   return newDate;
 }
 
+function convertTime(timestamp) {
+  return (new Date(timestamp * 1000)).toLocaleTimeString();
+}
+
 function fullDaysBetween(firstDate, secondDate) {
   return Math.floor((secondDate.getTime() - firstDate.getTime()) / (24 * 60 * 60 * 1000));
 }
@@ -876,6 +880,52 @@ function visualizeEvent(windowEvents, categoryGroups) {
 }
 
 
+function drawEventsList(windowEvents) {
+  $("#events_list").empty();
+
+  var eventsToShow = windowEvents.filter(event => event.length > 10);
+
+  var listDiv = d3.select("#events_list").append("div");
+  var table = listDiv.append("table")
+    .attr("class", "table events_table");
+
+  var columns = [
+      { head: 'start_time', cl: 'event_start_time col-md-1', html: event => convertTime(event.t) },
+      { head: 'length', cl: 'event_length col-md-1', html: event => strTimeDelta(event.length) },
+      { head: 'group', cl: 'event_group col-md-2', html: event => event.group },
+      { head: 'caption', cl: 'event_caption', html: event => event.s },
+  ];
+
+  // create table header
+  table.append('thead').append('tr')
+    .selectAll('th')
+    .data(columns).enter()
+    .append('th')
+    .attr('class', column => column.cl)
+    .text(column => column.head);
+
+  // create table body
+  table.append('tbody')
+    .selectAll('tr')
+    .data(eventsToShow).enter()
+    .append('tr')
+    .selectAll('td')
+    .data(function(row, i) {
+      return columns.map(function(c) {
+          // compute cell values for this specific row
+          var cell = {};
+          d3.keys(c).forEach(function(k) {
+              cell[k] = typeof c[k] == 'function' ? c[k](row,i) : c[k];
+          });
+          return cell;
+      });
+    }).enter()
+    .append('td')
+    .html(cell => cell.html)
+    .attr(cell => cell.cl);
+}
+
+
 // count up how much every event took
 function processWindowEvents(windowEvents) {
   ecounts = {};
@@ -928,7 +978,7 @@ function fetchEvents(beginTime, endTime, callback) {
 function drawSingleDayStats() {
   fetchEvents(beginTime, endTime, () => {
     // map all window titles through the (customizable) mapwin function
-    events['window_events'].forEach(event => event.group = mapwin(e.s));
+    events['window_events'].forEach(event => event.group = mapwin(event.s));
 
     events['window_events'] = processWindowEvents(events['window_events']);
 
@@ -943,7 +993,7 @@ function drawSingleDayStats() {
     }
 
     // render blog entry
-    blog = 'blog' in data ? events['blog'] : '';
+    blog = 'blog' in events ? events['blog'] : '';
     if(blog === '') { blog = 'click to enter blog for this day'; }
     $("#blogpre").text(blog);
 
@@ -970,5 +1020,28 @@ function drawOverviewStats() {
     visualizeTimeSummary(dayDurations);
 
     drawKeyEvents();
+  });
+}
+
+function drawEventsListStats() {
+  fetchEvents(beginTime, endTime, () => {
+    // map all window titles through the (customizable) mapwin function
+    events['window_events'].forEach(event => event.group = mapwin(event.s));
+
+    events['window_events'] = processWindowEvents(events['window_events']);
+
+    // create color hash table, maps from window titles -> HSL color
+    groupColor = colorHashStrings(_.uniq(_.pluck(events['window_events'], 'group')));
+
+    if(events['window_events'].length > 0) {
+      eventsBeginTime = _.min(_.pluck(events['window_events'], 't'));
+      eventsEndTime = _.max(_.map(events['window_events'], event => event.t + event.length));
+    } else {
+      eventsBeginTime = beginTime.getTime() / 1000;
+      eventsEndTime = endTime.getTime() / 1000;
+    }
+
+    writeHeader();
+    drawEventsList(events['window_events']);
   });
 }

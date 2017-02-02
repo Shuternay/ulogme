@@ -5,8 +5,6 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
     <title>ulogme</title>
 
-    <link href='style.css' rel='stylesheet' type='text/css'>
-
     <script
       src="https://code.jquery.com/jquery-1.12.4.min.js"
       integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ="
@@ -25,40 +23,80 @@
       integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa"
       crossorigin="anonymous"></script>
 
+    <link href='style.css' rel='stylesheet' type='text/css'>
+
     <script src="spin.min.js"></script>
     <script src="render_utils.js"></script>
     <script src="render_settings.js"></script>
     <script src="d3.min.js" charset="utf-8"></script>
     <script src="d3utils.js" charset="utf-8"></script>
+    <!-- <script src="https://rawgit.com/gka/d3-jetpack/master/d3-jetpack.js"></script> -->
     <script src="underscore.min.js" charset="utf-8"></script>
     <script src="ulogme_common.js" charset="utf-8"></script>
+
     <script type="application/javascript">
 
-    var event_list;
-    var events;
+    var beginTime = rewind7am(new Date());
+    var endTime = new Date(beginTime);
+    endTime.setDate(endTime.getDate() + 1);
+
     function start() {
+      drawEventsListStats();
 
-      drawOverviewStats();
-
+      // setup refresh handler to create a post request to /reload
       $("#reloadbutton").click(function() {
-
         startSpinner();
         $.post("/refresh",
-          {"time" : 0},
+          {"time" : events['window_events'][0] ? events['window_events'][0].t : 0},
           function(data,status){
             console.log("Data: " + data + "\nStatus: " + status);
             stopSpinner();
             if(data === 'OK') {
               // everything went well, refresh current view
-              drawOverviewStats();
+              drawEventsListStats();
             }
         });
       });
+
+      // setup arrow events
+      $("#leftarrow").click(function() {
+        beginTime.setDate(beginTime.getDate() - 1);
+        endTime.setDate(endTime.getDate() - 1);
+        drawEventsListStats();
+        $("#notesinfo").hide();
+        $("#blogenter").hide();
+        $("#blogpre").show();
+      });
+
+      $("#rightarrow").click(function() {
+        beginTime.setDate(beginTime.getDate() + 1);
+        endTime.setDate(endTime.getDate() + 1);
+        drawEventsListStats();
+        $("#notesinfo").hide();
+        $("#blogenter").hide();
+        $("#blogpre").show();
+      });
+
+      setInterval(redraw, 1000); // in case of window resize, we can redraw
     }
 
+    // redraw if dirty (due to window resize event)
+    function redraw() {
+      if(!dirty) return;
+      if(!loaded) return;
+      visualizeEventsList(events);
+      dirty = false;
+    }
+
+    var dirty = false;
+    $(window).resize(function() {
+      dirty = true;
+    });
     </script>
   </head>
+  
   <body onload="start()">
+
     <nav class="navbar navbar-default">
       <div class="container-fluid">
         <!-- Brand and toggle get grouped for better mobile display -->
@@ -75,42 +113,28 @@
         <!-- Collect the nav links, forms, and other content for toggling -->
         <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
           <ul class="nav navbar-nav navbar-left">
-            <li class="active"><a href="overview.html">Overview</a></li>
+            <li><a href="overview.html">Overview</a></li>
             <li><a href="index.html">Single-day view</a></li>
-            <li><a href="list.html">List view</a></li>
+            <li class="active"><a href="list.html">List view</a></li>
           </ul>
 
           <ul class="nav navbar-nav navbar-right">
-            <li><button type="button" id="reloadbutton" class="btn btn-default navbar-btn">&#10226;</button></li>
+            <li><button type="button" id="leftarrow" class="btn btn-default navbar-btn">&lt;</button></li>
+            <li><p id="header" class="navbar-text"></p></li>
+            <li><div class="btn-group">
+              <button type="button" id="rightarrow" class="btn btn-default navbar-btn">&gt;</button>
+              <button type="button" id="reloadbutton" class="btn btn-default navbar-btn">&#10226;</button>
+            </div></li>
           </ul>
         </div><!-- /.navbar-collapse -->
       </div><!-- /.container-fluid -->
     </nav>
 
-    <div id="wrap-overview">
-      <div id="graphopts">
-      </div>
 
-      <div class="page-header">
-        <h2>Total amount of time per day</h2>
-      </div>
-      <div id="groups-bar-chart"></div>
-
-      <div class="page-header">
-        <h2>Per-window summaries</h2>
-      </div>
-
-      <div id="summaries">
-        <div id="keysummary"></div>
-        <div id="timesummary"></div>
-      </div>
-
-      <div class="page-header">
-        <h2>Key frequencies during each day</h2>
-      </div>
+    <div id="wrap">
       <div id="keystats"></div>
+      <div id="keygraph"></div>
+      <div id="events_list"></div>
     </div>
-
-    <br><br><br><br>
   </body>
 </html>
