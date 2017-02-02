@@ -69,8 +69,8 @@ function fullDaysBetween(firstDate, secondDate) {
 }
 
 function writeHeader() {
-  var date0 = new Date(t00*1000);
-  var date1 = new Date(ft*1000);
+  var date0 = new Date(eventsBeginTime*1000);
+  var date1 = new Date(eventsEndTime*1000);
   $("#header").html(ppDate(date0) + ' &mdash; ' + ppDate(date1));
 }
 
@@ -603,8 +603,8 @@ function visualizeTimeSummary(dayDurations) {
 
 // GLOBALS
 var groupColor = {}; // mapped titles -> hsl color to draw with
-var t00; // initial time for a day (time first event began)
-var ft; // final time for a day (time last event ended)
+var eventsBeginTime; // initial time for a day (time first event began)
+var eventsEndTime; // final time for a day (time last event ended)
 var ecounts = {};
 var titleGroups = [];
 var hacking_stats = {};
@@ -635,9 +635,9 @@ function createPieChart(es, titleGroups) {
 }
 
 // creates the main barcode time visualization for all mapped window titles
-function visualizeEvents(es) {
+function visualizeEvents(window_events) {
   $("#eventvis").empty();
-  _.each(display_groups, function(x) { visualizeEvent(es, x); })
+  display_groups.forEach(displayGroup => visualizeEvent(window_events, displayGroup));
 }
 
 
@@ -660,7 +660,7 @@ function visualizeHackingTimes(hacking_stats) {
   .attr("width", W)
   .attr("height", 30);
 
-  var sx = (ft-t00) / W;
+  var sx = (eventsEndTime-eventsBeginTime) / W;
   var g = svg.selectAll(".h")
     .data(hacking_stats.events)
     .enter().append("g")
@@ -670,7 +670,7 @@ function visualizeHackingTimes(hacking_stats) {
     .on("mouseout", function(){return tooltip.style("visibility", "hidden");});
 
   g.append("rect")
-    .attr("x", function(session) { return (session.beginTime - t00) / sx; } )
+    .attr("x", function(session) { return (session.beginTime - eventsBeginTime) / sx; } )
     .attr("width", function(d) { return d.length / sx; } )
     .attr("y", function(d) {return 30-10*d.intensity} )
     .attr("height", function(d) {return 10*d.intensity; })
@@ -718,9 +718,9 @@ function visualizeKeyFreq(es) {
   .attr("width", "100%")
   .attr("height", 100);
 
-  var sx = (ft-t00) / W;
+  var sx = (eventsEndTime-eventsBeginTime) / W;
   var line = d3.svg.line()
-    .x(function(d) { return (d.t -t00) / sx; })
+    .x(function(d) { return (d.t -eventsBeginTime) / sx; })
     .y(function(d) { return 100 - d.s; });
 
   svg.append("path")
@@ -742,11 +742,11 @@ function visualizeNotes(es) {
   for(var i=0,N=es.length;i<N;i++) {
     var e = es[i];
     var d = {};
-    d.x = e.t-t00;
+    d.x = e.t-eventsBeginTime;
     d.s = e.s;
     if(e.s.indexOf("coffee")>-1) {
       // we had coffee
-      coffees.push(e.t-t00);
+      coffees.push(e.t-eventsBeginTime);
     }
     dts.push(d);
   }
@@ -759,7 +759,7 @@ function visualizeNotes(es) {
   .attr("width", W)
   .attr("height", 70);
 
-  var sx = (ft-t00) / W;
+  var sx = (eventsEndTime-eventsBeginTime) / W;
 
   // Draw coffee. Overlay
   // draw_coffee is set in render_settings.js
@@ -768,7 +768,7 @@ function visualizeNotes(es) {
     var nc = coffees.length;
     var alpha = Math.log(2)/20520; // 20,520 is half life of coffee, in seconds. Roughly 6 hours
     for(var i=0;i<100;i++) {
-      there = i*(ft-t00)/100.0;
+      there = i*(eventsEndTime-eventsBeginTime)/100.0;
       // coffee is assumed to add linearly in the body
       var amount = 0;
       for(var j=0;j<nc;j++) {
@@ -778,7 +778,7 @@ function visualizeNotes(es) {
       }
       coffex.push({t:there, a:30*amount}); // scale is roughly 30px = 150mg coffee, for now
     }
-    var cdx = (ft - t00)/100.0;
+    var cdx = (eventsEndTime - eventsBeginTime)/100.0;
     var g = svg.selectAll(".c")
       .data(coffex)
       .enter()
@@ -811,87 +811,95 @@ function visualizeNotes(es) {
     .text(function(d) { return d.s; } );
 }
 
-var clicktime;
-function visualizeEvent(es, filter) {
-  var dts = [];
-  var ttot = 0;
-  var ttoti = [];
-  var filter_colors = [];
-  for(var q=0;q<filter.length;q++) {
-    filter_colors[q] = groupColor[filter[q]];
-    ttoti.push(0);
-  }
-  for(var i=0,N=es.length;i<N;i++) {
-    var e = es[i];
-    if (e.s == '') {
-      continue;
-    }
-    var fix = filter.indexOf(e.group);
-    if( fix === -1) { continue; }
-    ttot += e.length;
-    ttoti[fix] += e.length;
-    if(e.length < 10) continue; // less than few second event? skip drawing. Not a concentrated activity
-    var d = {};
-    d.x = e.t - t00;
-    d.w = e.length;
-    d.s = e.s + " (" + strTimeDelta(e.length) + ")";
-    d.fix = fix;
-    dts.push(d);
-  }
-  if(ttot < 60) return; // less than a minute of activity? skip
 
-  console.log('drawing filter ' + filter + ' with ' + dts.length + ' events.');
+var clicktime;
+function visualizeEvent(windowEvents, categoryGroups) {
+  var totalTime = 0;
+  var groupTotalTime = {}
+  categoryGroups.forEach(group => groupTotalTime[group] = 0);
+  var groupColors = categoryGroups.map(group => groupColor[group]);
+
+  var bars = [];
+  windowEvents.forEach(event => {
+    if (event.s == '') {
+      return;
+    }
+    if (categoryGroups.indexOf(event.group) === -1) {
+      return;
+    }
+
+    totalTime += event.length;
+    groupTotalTime[event.group] += event.length;
+    if(event.length < 10) {
+      return; // less than few second event? skip drawing. Not a concentrated activity
+    }
+
+    var bar = {};
+    bar.position = event.t - eventsBeginTime;
+    bar.width = event.length;
+    bar.title = event.s + " (" + strTimeDelta(event.length) + ")";
+    bar.group = event.group;
+    bars.push(bar);
+  });
+  if(totalTime < 60)
+    return; // less than a minute of activity? skip
+
+  console.log('drawing category ' + categoryGroups + ' with ' + bars.length + ' events.');
 
   var div = d3.select("#eventvis").append("div");
 
-  var filters_div = div.append("div").attr("class", "fsdiv");
-  for(var q=0;q<filter.length;q++) {
-    if(ttoti[q] === 0) continue; // this filter wasnt found
+  var categoryDiv = div.append("div").attr("class", "fsdiv");
+  categoryGroups.forEach(group => {
+    if(groupTotalTime[group] === 0) {
+      return;
+    }
 
-    var filter_div = filters_div.append("div").attr("class", "fdiv");
-    var c = filter_colors[q];
-    filter_div.append("p").attr("class", "group-title").attr("style", "color:"+c).text(filter[q]);
-    var txt = strTimeDelta(ttoti[q]);
-    filter_div.append("p").attr("class", "group-time").text(txt);
-  }
+    var groupDiv = categoryDiv.append("div").attr("class", "fdiv");
+    groupDiv.append("p").attr("class", "group-title")
+      .attr("style", "color:" + groupColor[group])
+      .text(group);
+    groupDiv.append("p").attr("class", "group-time")
+      .text(strTimeDelta(groupTotalTime[group]));
+  });
 
-  var W = $(window).width() - 40;
+  var width = $(window).width() - 40; // FIXME
   var svg = div.append("svg")
-  .attr("width", W)
-  .attr("height", 50);
+    .attr("width", width)
+    .attr("height", 50);
 
-  var sx = (ft-t00) / W;
+  var sx = (eventsEndTime - eventsBeginTime) / width;
   var g = svg.selectAll(".e")
-    .data(dts)
+    .data(bars)
     .enter().append("g")
     .attr("class", "e")
-    .on("mouseover", function(d){return tooltip.style("visibility", "visible").text(d.s);})
-    .on("mousemove", function(){return tooltip.style("top", (event.pageY-10)+"px").style("left",(event.pageX+10)+"px");})
-    .on("mouseout", function(){return tooltip.style("visibility", "hidden");})
-    .on("click", function(d){
+    .on("mouseover", bar => tooltip.style("visibility", "visible").text(bar.title))
+    .on("mousemove", () => tooltip.style("top", (event.pageY-10)+"px").style("left",(event.pageX+10)+"px"))
+    .on("mouseout", () => tooltip.style("visibility", "hidden"))
+    .on("click", bar => {
       $("#notesinfo").show();
-      $("#notesmsg").html("clicked event <b>" + d.s + "</b><br> Add note at time of this event:");
+      $("#notesmsg").html("clicked event <b>" + bar.title + "</b><br> Add note at time of this event:");
       $("#notetext").focus()
-      clicktime = d.x+t00;
+      clicktime = bar.position + eventsBeginTime;
       return 0;
-      });
+    });
 
   g.append("rect")
-    .attr("x", function(d) { return d.x/sx; } )
-    .attr("width", function(d) { return d.w/sx; } )
+    .attr("x", bar => bar.position / sx)
+    .attr("width", bar => bar.width / sx)
     .attr("y", 0)
     .attr("height", 30)
-    .attr("fill", function(d) { return filter_colors[d.fix]; });
+    .attr("fill", bar => groupColor[bar.group]);
+
 
   // produce little axis numbers along the timeline
-  var d0 = new Date(t00 * 1000);
+  var d0 = new Date(eventsBeginTime * 1000);
   d0.setMinutes(0);
   d0.setSeconds(0);
   d0.setMilliseconds(0);
   var t = d0.getTime() / 1000; // cropped hour
-  while(t < ft) {
+  while(t < eventsEndTime) {
     svg.append("text")
-      .attr("transform", "translate(" + [(t-t00)/sx, 50] + ")")
+      .attr("transform", "translate(" + [(t-eventsBeginTime)/sx, 50] + ")")
       .attr("font-family", "'Lato', sans-serif")
       .attr("font-size", 14)
       .attr("fill", "#CCC")
@@ -899,6 +907,7 @@ function visualizeEvent(es, filter) {
     t += 3600;
   }
 }
+
 
 // count up how much every event took
 function processWindowEvents(windowEvents) {
@@ -959,11 +968,11 @@ function fetchAndLoadEvents(beginTime, endTime) {
 
     // find the time extent: min and max time for this day
     if(events['window_events'].length > 0) {
-      t00 = _.min(_.pluck(events['window_events'], 't'));
-      ft = _.max(_.map(events['window_events'], function(e) { return e.t + e.length; }))
+      eventsBeginTime = _.min(_.pluck(events['window_events'], 't'));
+      eventsEndTime = _.max(_.map(events['window_events'], function(e) { return e.t + e.length; }))
     } else {
-      t00 = beginTime.getTime() / 1000;
-      ft = endTime.getTime() / 1000;
+      eventsBeginTime = beginTime.getTime() / 1000;
+      eventsEndTime = endTime.getTime() / 1000;
     }
 
     // render blog entry
