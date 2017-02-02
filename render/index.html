@@ -60,7 +60,7 @@
       .style("visibility", "hidden")
       .text("");
 
-      fetchAndLoadEvents(beginTime, endTime);  // display latest
+      drawSingleDayStats();
 
       // setup notes hide key
       $("#notesinfohide").click(function(){ $("#notesinfo").hide(); });
@@ -76,7 +76,7 @@
             stopSpinner();
             if(data === 'OK') {
               // everything went well, refresh current view
-              fetchAndLoadEvents(beginTime, endTime);
+              drawSingleDayStats();
             }
         });
       });
@@ -94,7 +94,7 @@
               // everything went well, refresh current view
               $("#notetext").val('') // erase
               $("#notesinfo").hide(); // take away
-              fetchAndLoadEvents(beginTime, endTime);
+              drawSingleDayStats();
             }
         });
       });
@@ -110,7 +110,7 @@
       $("#leftarrow").click(function() {
         beginTime.setDate(beginTime.getDate() - 1);
         endTime.setDate(endTime.getDate() - 1);
-        fetchAndLoadEvents(beginTime, endTime);
+        drawSingleDayStats();
         $("#notesinfo").hide();
         $("#blogenter").hide();
         $("#blogpre").show();
@@ -118,7 +118,7 @@
       $("#rightarrow").click(function() {
         beginTime.setDate(beginTime.getDate() + 1);
         endTime.setDate(endTime.getDate() + 1);
-        fetchAndLoadEvents(beginTime, endTime);
+        drawSingleDayStats();
         $("#notesinfo").hide();
         $("#blogenter").hide();
         $("#blogpre").show();
@@ -154,6 +154,7 @@
       });
       setInterval(redraw, 1000); // in case of window resize, we can redraw
     }
+
 
     // redraw if dirty (due to window resize event)
     function redraw() {

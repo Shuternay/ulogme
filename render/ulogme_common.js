@@ -501,39 +501,6 @@ function drawKeyEvents() {
       ' per day average)');
 }
 
-function loadAllEvents() {
-
-  // // load the master json file and all the other jsons
-  // getJSON_CACHEHACK("export_list.json").then(function(days_list) {
-  //   event_list = days_list; // global variable assign
-  //   console.log("fetched export_list OK.")
-  //   return Promise.all(days_list.map(function(x) { return getJSON_CACHEHACK(x.fname); }));
-  // }).then(function(days) {
-  //   events = days; // global variable assign
-  // }).catch(function(err){
-  //   console.log('some error happened: ' + err);
-  // }).then(function() {
-
-  loaded = false;
-  // we do this random thing to defeat caching. Very annoying
-  var json_path = 'events?begin_time=' + (new Date(0)).getTime() +
-      '&end_time=' + (new Date()).getTime() +
-      "&sigh=" + Math.floor(10000*Math.random());
-
-  $.getJSON(json_path, function(data) {
-    events = data;
-
-    analyzeEvents();
-    drawGroupsBarChart();
-
-    key_stats_all = mergeWindowKeyEvents();
-    visualizeKeySummary(key_stats_all);
-    visualizeTimeSummary(dayDurations);
-
-    drawKeyEvents(); // draw key events
-  });
-}
-
 function mergeWindowKeyEvents() {
   return computeKeyStats(events['window_events'], events['keyfreq_events']);
 }
@@ -942,8 +909,7 @@ function processWindowEvents(windowEvents) {
 }
 
 
-
-function fetchAndLoadEvents(beginTime, endTime) {
+function fetchEvents(beginTime, endTime, callback) {
   loaded = false;
   // we do this random thing to defeat caching. Very annoying
   var json_path = 'events?begin_time=' + beginTime.getTime() +
@@ -953,35 +919,36 @@ function fetchAndLoadEvents(beginTime, endTime) {
   // fill in blog area with blog for this day
   $.getJSON(json_path, function(data) {
     loaded = true;
-
-    // save these as globals for later access
     events = data;
+    callback();
+  });
+}
 
+
+function drawSingleDayStats() {
+  fetchEvents(beginTime, endTime, () => {
     // map all window titles through the (customizable) mapwin function
-    _.each(events['window_events'], function(e) { e.group = mapwin(e.s); });
+    events['window_events'].forEach(event => event.group = mapwin(e.s));
 
-    // compute various statistics
     events['window_events'] = processWindowEvents(events['window_events']);
 
-    // create color hash table, maps from window titles -> HSL color
     groupColor = colorHashStrings(_.uniq(_.pluck(events['window_events'], 'group')));
 
-    // find the time extent: min and max time for this day
     if(events['window_events'].length > 0) {
       eventsBeginTime = _.min(_.pluck(events['window_events'], 't'));
-      eventsEndTime = _.max(_.map(events['window_events'], function(e) { return e.t + e.length; }))
+      eventsEndTime = _.max(_.map(events['window_events'], event => event.t + event.length));
     } else {
       eventsBeginTime = beginTime.getTime() / 1000;
       eventsEndTime = endTime.getTime() / 1000;
     }
 
     // render blog entry
-    blog = 'blog' in data ? data['blog'] : '';
+    blog = 'blog' in data ? events['blog'] : '';
     if(blog === '') { blog = 'click to enter blog for this day'; }
     $("#blogpre").text(blog);
 
-    visualizeEvents(events['window_events']);
     writeHeader();
+    visualizeEvents(events['window_events']);
     createPieChart(events['window_events'], titleGroups);
     computeKeyStats(events['window_events'], events['keyfreq_events']);
     hacking_stats = computeHackingStats(events['window_events'], events['keyfreq_events'], hacking_titles);
@@ -990,5 +957,18 @@ function fetchAndLoadEvents(beginTime, endTime) {
     visualizeKeyStats(key_stats, titleGroups);
     visualizeKeyFreq(events['keyfreq_events']);
     visualizeNotes(events['notes_events']);
+  });
+}
+
+function drawOverviewStats() {
+  fetchEvents(new Date(0), new Date(), () => {
+    analyzeEvents();
+    drawGroupsBarChart();
+
+    key_stats_all = mergeWindowKeyEvents();
+    visualizeKeySummary(key_stats_all);
+    visualizeTimeSummary(dayDurations);
+
+    drawKeyEvents();
   });
 }

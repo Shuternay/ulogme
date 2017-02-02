@@ -38,7 +38,7 @@
     var events;
     function start() {
 
-      loadAllEvents();
+      drawOverviewStats();
 
       $("#reloadbutton").click(function() {
 
@@ -50,7 +50,7 @@
             stopSpinner();
             if(data === 'OK') {
               // everything went well, refresh current view
-              loadAllEvents(); // reload all events
+              drawOverviewStats();
             }
         });
       });
