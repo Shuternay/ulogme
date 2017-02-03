@@ -27,6 +27,7 @@ do
   logfile="logs/keyfreq_$(python rewind7am.py).txt"
   # TODO: write directly to database
   echo "$(date +%s) $num"  >> $logfile
+  echo "keyfreq $(date +%s) $num" | python write_to_db.py
   echo "logged key frequency: $(date) $num release events detected into $logfile"
 
 done

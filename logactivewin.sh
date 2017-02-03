@@ -62,7 +62,8 @@ do
 		# number of seconds elapsed since Jan 1, 1970 0:00 UTC
 		logfile="logs/window_$(python rewind7am.py).txt"
         # TODO: write directly to database
-		echo "$T $curtitle" >> $logfile
+        echo "$T $curtitle" >> $logfile
+		echo "window $T $curtitle" | python write_to_db.py
 		echo "logged window title: $(date) $curtitle into $logfile"
 		last_write=$T
 	fi
