@@ -895,6 +895,11 @@ function countGroupsDurations(windowEvents) {
   var firstDayBeginTime = rewind7am(events['window_events'][0].t * 1000);
 
   windowEvents.forEach((windowEvent, index, windowEvents) => {
+    if(titleGroups.indexOf(windowEvent.group) === -1) {
+      titleGroups.push(windowEvent.group);
+      skipDraw[windowEvent.group] = false;
+    }
+
     var dayNumber = fullDaysBetween(firstDayBeginTime, new Date(windowEvent.t * 1000));
     while (dailyGroupsDurations.length <= dayNumber) {
       dailyGroupsDurations.push({});
@@ -1010,12 +1015,6 @@ function drawSingleDayStats() {
 function drawOverviewStats() {
   fetchEvents(new Date(0), new Date(), () => {
     events['window_events'].forEach(event => event.group = mapwin(event.s));
-    events['window_events'].forEach(event => {
-      if(titleGroups.indexOf(event.group) === -1) {
-        titleGroups.push(event.group);
-        skipDraw[event.group] = false;
-      }
-    });
 
     events['window_events'] = countWindowEventsDurations(events['window_events']);
     countGroupsDurations(events['window_events']);
