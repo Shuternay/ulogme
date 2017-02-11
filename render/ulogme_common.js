@@ -630,24 +630,24 @@ function visualizeKeyStats(key_stats, titleGroups) {
   d3utils.drawHorizontalBarChart(d3.select('#daily-keystats'), chart_data);
 }
 
-// simple plot of key frequencies over time
-function visualizeKeyFreq(es) {
+
+function drawKeysNumberGraph(keyEvents) {
   $("#keygraph").empty();
 
-  var W = $(window).width() - 40;
+  var width = $(window).width() - 40;
 
   var div = d3.select("#keygraph").append("div");
   var svg = div.append("svg")
   .attr("width", "100%")
   .attr("height", 100);
 
-  var sx = (eventsEndTime-eventsBeginTime) / W;
+  var sx = (eventsEndTime - eventsBeginTime) / width;
   var line = d3.svg.line()
-    .x(function(d) { return (d.t -eventsBeginTime) / sx; })
-    .y(function(d) { return 100 - d.s; });
+    .x(function(d) { return (d.t - eventsBeginTime) / sx; })
+    .y(function(d) { return 100 - d.s - 1; });
 
   svg.append("path")
-    .datum(es)
+    .datum(keyEvents)
     .attr("class", "line")
     .attr("d", line);
 
@@ -942,6 +942,19 @@ function countWindowEventsDurations(windowEvents) {
 }
 
 
+function fillKeyEvents(keyEvents) {
+  filledKeyEvents = [];
+  keyEvents.forEach((keyEvent, index, keyEvents) => {
+    filledKeyEvents.push(keyEvent);
+    if (index + 1 < keyEvents.length && keyEvents[index + 1].t - keyEvent.t > 18) {
+      filledKeyEvents.push({s: 0, t: keyEvent.t + 9});
+      filledKeyEvents.push({s: 0, t: keyEvents[index + 1].t - 9});
+    }
+  });
+  return filledKeyEvents;
+}
+
+
 function fetchEvents(beginTime, endTime, callback) {
   loaded = false;
   // we do this random thing to defeat caching. Very annoying
@@ -965,6 +978,8 @@ function drawSingleDayStats() {
     events['window_events'] = countWindowEventsDurations(events['window_events']);
     countGroupsDurations(events['window_events']);
 
+    events['keyfreq_events'] = fillKeyEvents(events['keyfreq_events']);
+
     groupColor = colorHashStrings(_.uniq(_.pluck(events['window_events'], 'group')));
 
     if(events['window_events'].length > 0) {
@@ -987,7 +1002,7 @@ function drawSingleDayStats() {
     visualizeHackingTimes(hacking_stats);
     key_stats = computeKeyStats(events['window_events'], events['keyfreq_events']);
     visualizeKeyStats(key_stats, titleGroups);
-    visualizeKeyFreq(events['keyfreq_events']);
+    drawKeysNumberGraph(events['keyfreq_events']);
     visualizeNotes(events['notes_events']);
   });
 }
@@ -1006,6 +1021,8 @@ function drawOverviewStats() {
     countGroupsDurations(events['window_events']);
     groupColor = colorHashStrings(_.uniq(_.pluck(events['window_events'], 'group')));
 
+    events['keyfreq_events'] = fillKeyEvents(events['keyfreq_events']);
+
     drawGroupsBarChart();
 
     key_stats_all = mergeWindowKeyEvents();
@@ -1022,8 +1039,9 @@ function drawEventsListStats() {
 
     events['window_events'] = processWindowEvents(events['window_events']);
     countGroupsDurations(events['window_events']);
-
     groupColor = colorHashStrings(_.uniq(_.pluck(events['window_events'], 'group')));
+
+    events['keyfreq_events'] = fillKeyEvents(events['keyfreq_events']);
 
     if(events['window_events'].length > 0) {
       eventsBeginTime = _.min(_.pluck(events['window_events'], 't'));

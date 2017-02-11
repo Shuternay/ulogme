@@ -161,7 +161,7 @@
       if(!dirty) return;
       if(!loaded) return;
       visualizeEvents(events['window_events']);
-      visualizeKeyFreq(events['keyfreq_events']);
+      drawKeysNumberGraph(events['keyfreq_events']);
       visualizeNotes(events['notes_events']);
       visualizeHackingTimes(hacking_stats);
       dirty = false;
