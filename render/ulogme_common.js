@@ -221,10 +221,10 @@ function drawGroupsBarChart() {
     }
 
     pi.on('click', () => {
-      if(skipDraw[group] === false) {
-        skipDraw[group] = true;
-      } else {
+      if(skipDraw[group] ===true) {
         skipDraw[group] = false;
+      } else {
+        skipDraw[group] = true;
       }
       drawGroupsBarChart();
     });
@@ -533,27 +533,24 @@ var titleGroups = [];
 var hacking_stats = {};
 
 // renders pie chart showing distribution of time spent into #piechart
-function createPieChart(es, titleGroups) {
-  // count up the total amount of time spent in all windows
-  var dtall = 0;
-  var counts = {};
-  _.each(es, function(e){
-    counts[e.group] = (counts[e.group] || 0) + e.length;
-    dtall += e.length;
-  });
-  var stats = _.map(titleGroups, function(group) {
-    return {val: counts[group],
-            name: group + " (" + (100*counts[group]/dtall).toFixed(1) + "%)",
-            col: groupColor[group]
-           };
-  });
+function createPieChart(windowEvents, titleGroups) {
+  var totalDuration = titleGroups.reduce((duration, group) => duration + groupsDurations[group], 0);
 
-  // create a pie chart with d3
-  var chart_data = {};
-  chart_data.width = $(window).width() - 40;  // FIXME (causes horizontal scrolling)
-  chart_data.height = 500;
-  chart_data.title = "Total Time: " + strTimeDelta(dtall);
-  chart_data.data = stats;
+  var stats = titleGroups
+    .filter(group => groupsDurations[group] > 60 && !skipDraw[group])
+    .map(group => {
+      return {
+        val: groupsDurations[group],
+        name: group + " (" + (100 * groupsDurations[group] / totalDuration).toFixed(1) + "%)",
+        col: groupColor[group] };
+    });
+
+  var chart_data = {
+    width: $(window).width() - 40,  // FIXME (causes horizontal scrolling)
+    height: 500,
+    title: "Total Time: " + strTimeDelta(totalDuration),
+    data: stats
+  };
   d3utils.drawPieChart(d3.select('#piechart'), chart_data);
 }
 
@@ -793,12 +790,13 @@ function visualizeEvent(windowEvents, categoryGroups, beginTime, endTime) {
     }
 
     groupTitle.on('click', () => {
-      if(skipDraw[group] === false) {
-        skipDraw[group] = true;
-      } else {
+      if(skipDraw[group] === true) {
         skipDraw[group] = false;
+      } else {
+        skipDraw[group] = true;
       }
       visualizeEvents(windowEvents);
+      createPieChart(windowEvents, titleGroups);
     });
   });
 
@@ -908,13 +906,14 @@ var groupsDurations;
 function countGroupsDurations(windowEvents) {
   dailyGroupsDurations = [];
   groupsDurations = {};
+  titleGroups = [];
 
   var firstDayBeginTime = rewind7am(events['window_events'][0].t * 1000);
 
   windowEvents.forEach((windowEvent, index, windowEvents) => {
     if(titleGroups.indexOf(windowEvent.group) === -1) {
       titleGroups.push(windowEvent.group);
-      skipDraw[windowEvent.group] = false;
+      // skipDraw[windowEvent.group] = false;
     }
 
     var dayNumber = fullDaysBetween(firstDayBeginTime, new Date(windowEvent.t * 1000));
