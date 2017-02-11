@@ -1052,7 +1052,7 @@ function drawEventsListStats() {
   fetchEvents(beginTime, endTime, () => {
     events['window_events'].forEach(event => event.group = mapwin(event.s));
 
-    events['window_events'] = processWindowEvents(events['window_events']);
+    events['window_events'] = countWindowEventsDurations(events['window_events']);
     countGroupsDurations(events['window_events']);
     groupColor = colorHashStrings(_.uniq(_.pluck(events['window_events'], 'group')));
 
