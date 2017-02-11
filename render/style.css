@@ -58,6 +58,12 @@ pre {
   stroke-width: 1px;
 }
 
+#eventvis {
+  width: 97%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
 .group-title {
   font-size: 20px;
   margin-top: 10px;
@@ -168,12 +174,9 @@ input[type="text"] {
   padding: 5px;
 }
 .skipdrawyes {
-  text-decoration: line-through;
   color: #999 !important;
 }
-.skipdrawno {
-  text-decoration: underline;
-}
+
 #keysummary {
   display: inline-block;
 }

@@ -557,12 +557,6 @@ function createPieChart(es, titleGroups) {
   d3utils.drawPieChart(d3.select('#piechart'), chart_data);
 }
 
-// creates the main barcode time visualization for all mapped window titles
-function visualizeEvents(window_events) {
-  $("#eventvis").empty();
-  display_groups.forEach(displayGroup => visualizeEvent(window_events, displayGroup));
-}
-
 
 // uses global variable hacking_events as input. Must be set
 // and global total_hacking_time as well.
@@ -735,37 +729,45 @@ function visualizeNotes(es) {
 }
 
 
+// creates the main barcode time visualization for all mapped window titles
+function visualizeEvents(window_events) {
+  $("#eventvis").empty();
+
+  var beginTime = Math.min.apply(null, window_events
+    .filter(event => !skipDraw[event.group])
+    .map(event => event.t))
+
+  var endTime = Math.max.apply(null, window_events
+    .filter(event => !skipDraw[event.group])
+    .map(event => event.t + event.length))
+
+  display_groups.forEach(displayGroup =>
+    visualizeEvent(window_events, displayGroup, beginTime, endTime));
+}
+
+
 var clicktime;
-function visualizeEvent(windowEvents, categoryGroups) {
-  var totalTime = 0;
-  var groupTotalTime = {}
-  categoryGroups.forEach(group => groupTotalTime[group] = 0);
-  var groupColors = categoryGroups.map(group => groupColor[group]);
+function visualizeEvent(windowEvents, categoryGroups, beginTime, endTime) {
+  var totalTime = windowEvents
+    .filter(event => categoryGroups.indexOf(event.group) !== -1)
+    .map(event => event.length)
+    .reduce((a, b) => a + b, 0);
 
-  var bars = [];
-  windowEvents.forEach(event => {
-    if (event.s == '') {
-      return;
-    }
-    if (categoryGroups.indexOf(event.group) === -1) {
-      return;
-    }
+  if(totalTime < 60) {
+    return;
+  }
 
-    totalTime += event.length;
-    groupTotalTime[event.group] += event.length;
-    if(event.length < 10) {
-      return; // less than few second event? skip drawing. Not a concentrated activity
-    }
-
-    var bar = {};
-    bar.position = event.t - eventsBeginTime;
-    bar.width = event.length;
-    bar.title = event.s + " (" + strTimeDelta(event.length) + ")";
-    bar.group = event.group;
-    bars.push(bar);
-  });
-  if(totalTime < 60)
-    return; // less than a minute of activity? skip
+  bars = windowEvents
+    .filter(event => categoryGroups.indexOf(event.group) !== -1 && event.length > 10)
+    .filter(event => !skipDraw[event.group])
+    .map(event => {
+      return {
+        position: event.t - beginTime,
+        width: event.length,
+        title: event.s + " (" + strTimeDelta(event.length) + ")",
+        group: event.group
+      };
+    });
 
   console.log('drawing category ' + categoryGroups + ' with ' + bars.length + ' events.');
 
@@ -773,24 +775,39 @@ function visualizeEvent(windowEvents, categoryGroups) {
 
   var categoryDiv = div.append("div").attr("class", "fsdiv");
   categoryGroups.forEach(group => {
-    if(groupTotalTime[group] === 0) {
+    if(!groupsDurations.hasOwnProperty(group) || groupsDurations[group] === 0) {
       return;
     }
 
     var groupDiv = categoryDiv.append("div").attr("class", "fdiv");
-    groupDiv.append("p").attr("class", "group-title")
+    var groupTitle = groupDiv.append("p")
       .attr("style", "color:" + groupColor[group])
       .text(group);
     groupDiv.append("p").attr("class", "group-time")
-      .text(strTimeDelta(groupTotalTime[group]));
+      .text(strTimeDelta(groupsDurations[group]));
+
+    if(skipDraw[group]) {
+      groupTitle.attr('class', 'group-title skipdrawyes');
+    } else {
+      groupTitle.attr('class', 'group-title skipdrawno');
+    }
+
+    groupTitle.on('click', () => {
+      if(skipDraw[group] === false) {
+        skipDraw[group] = true;
+      } else {
+        skipDraw[group] = false;
+      }
+      visualizeEvents(windowEvents);
+    });
   });
 
-  var width = $(window).width() - 40; // FIXME
+  var width = parseInt(div.style('width'));
   var svg = div.append("svg")
     .attr("width", width)
     .attr("height", 50);
 
-  var sx = (eventsEndTime - eventsBeginTime) / width;
+  var sx = (endTime - beginTime) / width;
   var g = svg.selectAll(".e")
     .data(bars)
     .enter().append("g")
@@ -802,7 +819,7 @@ function visualizeEvent(windowEvents, categoryGroups) {
       $("#notesinfo").show();
       $("#notesmsg").html("clicked event <b>" + bar.title + "</b><br> Add note at time of this event:");
       $("#notetext").focus()
-      clicktime = bar.position + eventsBeginTime;
+      clicktime = bar.position + beginTime;
       return 0;
     });
 
@@ -815,14 +832,14 @@ function visualizeEvent(windowEvents, categoryGroups) {
 
 
   // produce little axis numbers along the timeline
-  var d0 = new Date(eventsBeginTime * 1000);
+  var d0 = new Date(beginTime * 1000);
   d0.setMinutes(0);
   d0.setSeconds(0);
   d0.setMilliseconds(0);
   var t = d0.getTime() / 1000; // cropped hour
   while(t < eventsEndTime) {
     svg.append("text")
-      .attr("transform", "translate(" + [(t-eventsBeginTime)/sx, 50] + ")")
+      .attr("transform", "translate(" + [(t - beginTime)/sx, 50] + ")")
       .attr("font-family", "'Lato', sans-serif")
       .attr("font-size", 14)
       .attr("fill", "#CCC")
