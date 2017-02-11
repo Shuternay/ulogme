@@ -259,7 +259,7 @@ function drawGroupsBarChart() {
 
 
   // draw x axis labels
-  var N = dayDurations.length;
+  var N = dailyGroupsDurations.length;
   var dsz = barsWidth / N;
   chartSvg.selectAll('.xlabel')
     .data(events)
@@ -297,7 +297,7 @@ function drawGroupsBarChart() {
       if(skipDraw[group])
         return;
       dtimes.push({
-        val: dayDurations[k].hasOwnProperty(group) ? dayDurations[k][group] : 0,
+        val: dailyGroupsDurations[k].hasOwnProperty(group) ? dailyGroupsDurations[k][group] : 0,
         col: groupColor[group]
       });
     })
@@ -321,54 +321,6 @@ function drawGroupsBarChart() {
       .attr("y", function(d) { gh += d.val; return barsHeight - gh * yscale; })
       .attr("fill", function(d) { return d.col; } );
   }
-}
-
-// enter .group field and build up titleGroups[]
-var titleGroups = []
-function assignGroups(events) {
-  events.forEach(event => {
-    event.group = mapwin(event.s);
-    if(titleGroups.indexOf(event.group) === -1) {
-      titleGroups.push(event.group);
-      skipDraw[event.group] = false;
-    }
-  })
-}
-
-
-var dayDurations = []; // stores durations for groups for all days. Core structure!
-var groupColor = {};
-function analyzeEvents() {
-  dayDurations = []; // reset global var
-
-  var titles = events['window_events'];
-  assignGroups(titles); // assign group names to structure in field .group, build titleGroups[]
-  groupColor = colorHashStrings(titleGroups);
-
-  var firstDayBeginTime = rewind7am(events['window_events'][0].t * 1000);
-
-  events['window_events'].forEach((title, index, titles) => {
-    if (title.s == '') {  // FIXME
-      return;
-    }
-    if (index + 1 == titles.length) {
-      title.length = 1;
-    } else {
-      title.length = titles[index + 1].t - title.t;
-    }
-    if (title.length > 600 && title.t > 1485651600) {
-      // console.log(title.length, title);
-      title.length = 600;
-    }
-    var dayNumber = fullDaysBetween(firstDayBeginTime, new Date(title.t * 1000));
-    while (dayDurations.length <= dayNumber) {
-      dayDurations.push({});
-    }
-    if (!dayDurations[dayNumber].hasOwnProperty(title.group)) {
-      dayDurations[dayNumber][title.group] = 0;
-    }
-    dayDurations[dayNumber][title.group] += title.length;
-  });
 }
 
 
@@ -539,14 +491,14 @@ function visualizeKeySummary(key_stats_all) {
   d3utils.drawHorizontalBarChart(d3.select('#keysummary'), chart_data);
 }
 
-function visualizeTimeSummary(dayDurations) {
+function visualizeTimeSummary(dailyGroupsDurations) {
   $("#timesummary").empty();
 
   var gstats = {};
   _.each(titleGroups, function(group) { gstats[group] = {name: group, val: 0, n:0, col: groupColor[group]}; });
-  var n = dayDurations.length;
+  var n = dailyGroupsDurations.length;
   for(var i=0;i<n;i++) {
-    var key_stats = dayDurations[i];
+    var key_stats = dailyGroupsDurations[i];
     for(var j=0;j<titleGroups.length;j++) {
       var e = titleGroups[j];
       if(key_stats.hasOwnProperty(e)) {
@@ -576,7 +528,7 @@ function visualizeTimeSummary(dayDurations) {
 var groupColor = {}; // mapped titles -> hsl color to draw with
 var eventsBeginTime; // initial time for a day (time first event began)
 var eventsEndTime; // final time for a day (time last event ended)
-var ecounts = {};
+var groupsDurations = {};
 var titleGroups = [];
 var hacking_stats = {};
 
@@ -934,24 +886,48 @@ function drawEventsList(windowEvents, filter) {
 
 
 // count up how much every event took
-function processWindowEvents(windowEvents) {
-  ecounts = {};
-  titleGroups = [];
+var dailyGroupsDurations;
+var groupsDurations;
+function countGroupsDurations(windowEvents) {
+  dailyGroupsDurations = [];
+  groupsDurations = {};
 
+  var firstDayBeginTime = rewind7am(events['window_events'][0].t * 1000);
+
+  windowEvents.forEach((windowEvent, index, windowEvents) => {
+    var dayNumber = fullDaysBetween(firstDayBeginTime, new Date(windowEvent.t * 1000));
+    while (dailyGroupsDurations.length <= dayNumber) {
+      dailyGroupsDurations.push({});
+    }
+
+    if (!dailyGroupsDurations[dayNumber].hasOwnProperty(windowEvent.group)) {
+      dailyGroupsDurations[dayNumber][windowEvent.group] = 0;
+    }
+    dailyGroupsDurations[dayNumber][windowEvent.group] += windowEvent.length;
+
+    if (!groupsDurations.hasOwnProperty(windowEvent.group)) {
+      groupsDurations[windowEvent.group] = 0;
+    }
+    groupsDurations[windowEvent.group] += windowEvent.length;
+  });
+
+  return windowEvents;
+}
+
+
+function countWindowEventsDurations(windowEvents) {
   windowEvents.forEach((windowEvent, index, windowEvents) => {
     if (index + 1 == windowEvents.length) {
       windowEvent.length = 1;
-      return;
-    }
-    windowEvent.length = windowEvents[index + 1].t - windowEvent.t;
-    if(ecounts.hasOwnProperty(windowEvent.group)) {
-      ecounts[windowEvent.group] += windowEvent.length;
     } else {
-      ecounts[windowEvent.group] = windowEvent.length;
-      titleGroups.push(windowEvent.group);
+      windowEvent.length = windowEvents[index + 1].t - windowEvent.t;
+    }
+    if (windowEvent.length > 700 && windowEvent.t > 1485651600) {
+      windowEvent.length = 600;
     }
   });
 
+  // unite events with the same title
   windowEvents = windowEvents.filter((windowEvent, index, windowEvents) => {
     if (index + 1 == windowEvents.length || windowEvent.s != windowEvents[index + 1].s) {
       return true;
@@ -984,10 +960,10 @@ function fetchEvents(beginTime, endTime, callback) {
 
 function drawSingleDayStats() {
   fetchEvents(beginTime, endTime, () => {
-    // map all window titles through the (customizable) mapwin function
     events['window_events'].forEach(event => event.group = mapwin(event.s));
 
-    events['window_events'] = processWindowEvents(events['window_events']);
+    events['window_events'] = countWindowEventsDurations(events['window_events']);
+    countGroupsDurations(events['window_events']);
 
     groupColor = colorHashStrings(_.uniq(_.pluck(events['window_events'], 'group')));
 
@@ -999,7 +975,6 @@ function drawSingleDayStats() {
       eventsEndTime = endTime.getTime() / 1000;
     }
 
-    // render blog entry
     blog = 'blog' in events ? events['blog'] : '';
     if(blog === '') { blog = 'click to enter blog for this day'; }
     $("#blogpre").text(blog);
@@ -1019,12 +994,23 @@ function drawSingleDayStats() {
 
 function drawOverviewStats() {
   fetchEvents(new Date(0), new Date(), () => {
-    analyzeEvents();
+    events['window_events'].forEach(event => event.group = mapwin(event.s));
+    events['window_events'].forEach(event => {
+      if(titleGroups.indexOf(event.group) === -1) {
+        titleGroups.push(event.group);
+        skipDraw[event.group] = false;
+      }
+    });
+
+    events['window_events'] = countWindowEventsDurations(events['window_events']);
+    countGroupsDurations(events['window_events']);
+    groupColor = colorHashStrings(_.uniq(_.pluck(events['window_events'], 'group')));
+
     drawGroupsBarChart();
 
     key_stats_all = mergeWindowKeyEvents();
     visualizeKeySummary(key_stats_all);
-    visualizeTimeSummary(dayDurations);
+    visualizeTimeSummary(dailyGroupsDurations);
 
     drawKeyEvents();
   });
@@ -1032,12 +1018,11 @@ function drawOverviewStats() {
 
 function drawEventsListStats() {
   fetchEvents(beginTime, endTime, () => {
-    // map all window titles through the (customizable) mapwin function
     events['window_events'].forEach(event => event.group = mapwin(event.s));
 
     events['window_events'] = processWindowEvents(events['window_events']);
+    countGroupsDurations(events['window_events']);
 
-    // create color hash table, maps from window titles -> HSL color
     groupColor = colorHashStrings(_.uniq(_.pluck(events['window_events'], 'group')));
 
     if(events['window_events'].length > 0) {
